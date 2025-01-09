@@ -6,16 +6,25 @@ import { toast } from 'react-toastify'
 import { mockChatRooms } from '../mocks/data'
 
 function ChatRoomList() {
+
     const [chatRooms, setChatRooms] = useState([])
     const [loading, setLoading] = useState(true)
     const [newRoomName, setNewRoomName] = useState('')
     const [creating, setCreating] = useState(false)
 
+    
+    /*
+        1. useEffect.fetchChatRooms()로 조회 API 호출하고 조회결과 setChatRooms으로 세팅
+        2. 생성 클릭시 handleCreateRoom로 새 채팅방 생성 후, fetchChatRooms 실행
+    */
+    useEffect(() => {
+        fetchChatRooms()
+    }, [])
+
     const fetchChatRooms = async () => {
 
         try {
             const response = await axios.get('http://localhost:8070/api/v1/chat/rooms')
-            console.log("response.data는 다음과 같다.", response.data)
             setChatRooms(response.data)
         } catch (error) {
             console.error('Error fetching chat rooms:', error)
@@ -27,13 +36,13 @@ function ChatRoomList() {
         }
     }
 
-    useEffect(() => {
-        fetchChatRooms()
-    }, [])
-
     const handleCreateRoom = async (e) => {
         e.preventDefault()
-        if (!newRoomName.trim()) return
+
+        if (!newRoomName.trim()) {
+            toast.error('채팅방 이름을 입력하세요');
+            return
+        }
 
         try {
             setCreating(true)
@@ -51,6 +60,7 @@ function ChatRoomList() {
         }
     }
 
+    /* 서버에서 데이터 가져오는 동안 표시할 로딩 이미지 */
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
@@ -89,7 +99,14 @@ function ChatRoomList() {
             <div className="space-y-4">
                 {chatRooms.length === 0 ? (
                     <p className="text-center text-gray-500 py-8">생성된 채팅방이 없습니다.</p>
-                ) : (
+                ) : ( /*1.room.lastMessage 를 추려내려면, RoomEntity를 먼져 id로 조회한 후, 
+                         해당 id에 종속된 가장 최근의 메시지를 뽑아내야 한다. 
+
+
+                         2. Link.to={`/chat/${room.id}`} 는 
+                          App.jsx에서 <Route path="/chat/:roomId" element={<ChatRoom />} /> 에 대응하는데, 
+                          이곳에서 /chat/room.id/messages를 호출한다.
+                    */
                     chatRooms.data.map((room) => (
                         <Link
                             key={room.id}
@@ -99,7 +116,7 @@ function ChatRoomList() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h2 className="font-semibold text-lg">{room.name}</h2>
-                                    {room.lastMessage && (
+                                    {room.lastMessage && ( //room에 lastMessage가 있으면  메시지 표기
                                         <p className="text-gray-600 text-sm mt-1">{room.lastMessage}</p>
                                     )}
                                 </div>
